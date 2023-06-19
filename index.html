@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>League of Legends - Points de Ligue et Rang</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Points de Ligue et Rang</h1>
+  <div id="result"></div>
+
+
+  <script>
+    function getLeagueData() {
+      var summonerData = [
+        { summonerName: 'tyssoxe', name: 'Nom 1' },
+        { summonerName: 'EUW KZH SON ', name: 'Nom 2' },
+        { summonerName: 'TOPLANER CEO', name: 'Nom 3' },
+        { summonerName: 'TTV Potent213', name: 'Nom 4' }
+      ];
+      var apiKey = 'RGAPI-1087c5ef-162e-41a0-b121-26e0e20992b5'; // Remplacez par votre clé d'API Riot Games
+
+      var resultElement = document.getElementById('result');
+      resultElement.innerHTML = ''; // Réinitialiser le contenu de la div résultat
+
+      var table = document.createElement('table');
+      var tableHeader = table.createTHead();
+      var row = tableHeader.insertRow();
+      var nameHeader = row.insertCell();
+      nameHeader.innerHTML = 'Pseudo';
+      var summonerHeader = row.insertCell();
+      summonerHeader.innerHTML = 'Pseudo ig';
+      var rankHeader = row.insertCell();
+      rankHeader.innerHTML = 'Rang';
+      var pointsHeader = row.insertCell();
+      pointsHeader.innerHTML = 'Points de Ligue';
+      var winsHeader = row.insertCell();
+      winsHeader.innerHTML = 'Wins';
+      var lossesHeader = row.insertCell();
+      lossesHeader.innerHTML = 'Losses';
+
+      var tableBody = table.createTBody();
+
+      var summonerPromises = summonerData.map(function(summoner) {
+        var summonerName = summoner.summonerName;
+        var name = summoner.name;
+
+        var summonerUrl = 'https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/' + encodeURIComponent(summonerName) + '?api_key=' + apiKey;
+        return fetch(summonerUrl)
+          .then(response => response.json())
+          .then(summonerData => {
+            var summonerId = summonerData.id;
+
+            var leagueUrl = 'https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/' + summonerId + '?api_key=' + apiKey;
+            return fetch(leagueUrl)
+              .then(response => response.json())
+              .then(leagueData => {
+                var leaguePoints = '';
+                var rank = '';
+                var wins = '';
+                var losses = '';
+
+                for (var i = 0; i < leagueData.length; i++) {
+                  if (leagueData[i].queueType === 'RANKED_SOLO_5x5') {
+                    leaguePoints = leagueData[i].leaguePoints;
+                    rank = leagueData[i].tier + ' ' + leagueData[i].rank;
+                    wins = leagueData[i].wins;
+                    losses = leagueData[i].losses;
+                    break;
+                  }
+                }
+
+                return { name: name, summonerName: summonerName, rank: rank, leaguePoints: leaguePoints, wins: wins, losses: losses };
+              })
+              .catch(error => {
+                console.log('Erreur :', error);
+                return { name: name, summonerName: summonerName, rank: '', leaguePoints: '', wins: '', losses: '' };
+              });
+          })
+          .catch(error => {
+            console.log('Erreur :', error);
+            return { name: name, summonerName: summonerName, rank: '', leaguePoints: '', wins: '', losses: '' };
+          });
+      });
+
+      Promise.all(summonerPromises)
+        .then(function(summonerResults) {
+          summonerResults.sort(function(a, b) {
+            var rankOrder = [
+              'IRON IV', 'IRON III', 'IRON II', 'IRON I',
+              'BRONZE IV', 'BRONZE III', 'BRONZE II', 'BRONZE I',
+              'SILVER IV', 'SILVER III', 'SILVER II', 'SILVER I',
+              'GOLD IV', 'GOLD III', 'GOLD II', 'GOLD I',
+              'PLATINUM IV', 'PLATINUM III', 'PLATINUM II', 'PLATINUM I',
+              'DIAMOND IV', 'DIAMOND III', 'DIAMOND II', 'DIAMOND I',
+              'MASTER I', 'GRANDMASTER I', 'CHALLENGER I'
+            ];
+
+            if (a.rank !== b.rank) {
+              return rankOrder.indexOf(b.rank) - rankOrder.indexOf(a.rank);
+            } else {
+              var aRankNum = parseInt(a.rank.split(' ')[1]);
+              var bRankNum = parseInt(b.rank.split(' ')[1]);
+              return bRankNum - aRankNum || a.leaguePoints - b.leaguePoints;
+            }
+          });
+          summonerResults.forEach(function(summonerResult) {
+            var row = tableBody.insertRow();
+            var nameCell = row.insertCell();
+            nameCell.innerHTML = summonerResult.name;
+            var summonerCell = row.insertCell();
+            summonerCell.innerHTML = summonerResult.summonerName;
+            var rankCell = row.insertCell();
+            rankCell.innerHTML = summonerResult.rank;
+            var pointsCell = row.insertCell();
+            pointsCell.innerHTML = summonerResult.leaguePoints;
+            var winsCell = row.insertCell();
+            winsCell.innerHTML = summonerResult.wins;
+            var lossesCell = row.insertCell();
+            lossesCell.innerHTML = summonerResult.losses;
+          });
+
+          resultElement.appendChild(table);
+        });
+    }
+
+    getLeagueData();
+  </script>
+</body>
+</html>
